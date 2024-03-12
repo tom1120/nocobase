@@ -18,7 +18,7 @@ export class CollectionRepository extends Repository {
 
   async load(options: LoadOptions = {}) {
     const { filter, skipExist } = options;
-    const instances = (await this.find({ filter, appends: ['fields'] })) as CollectionModel[];
+    const instances = (await this.find({ filter, order: [['sort', 'ASC']], appends: ['fields'] })) as CollectionModel[];
 
     const graphlib = CollectionsGraph.graphlib();
 

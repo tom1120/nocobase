@@ -180,6 +180,13 @@ export const useTableBlockProps = () => {
     onClickRow(record, setSelectedRow, selectedRow) {
       const { targets, uid } = findFilterTargets(fieldSchema);
       const dataBlocks = getDataBlocks();
+      console.error('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+      console.error(record);
+      console.error(setSelectedRow);
+      console.error(selectedRow);
+      console.error(dataBlocks);
+      console.error(targets);
+      console.error(ctx);
 
       // 如果是之前创建的区块是没有 x-filter-targets 属性的，所以这里需要判断一下避免报错
       if (!targets || !targets.some((target) => dataBlocks.some((dataBlock) => dataBlock.uid === target.uid))) {
@@ -188,8 +195,12 @@ export const useTableBlockProps = () => {
         setSelectedRow((prev) => (prev.length ? [] : prev));
         return;
       }
-
-      const value = [record[ctx.rowKey]];
+      // 如果表主键不是id，那么这里取值就有问题
+      // const value = [record[ctx.rowKey]];
+      const tt = targets?.[0]?.field;
+      const ff = tt.slice(tt.indexOf('.') + 1);
+      const value = [record[ff]];
+      console.error(value);
 
       dataBlocks.forEach((block) => {
         const target = targets.find((target) => target.uid === block.uid);
@@ -199,13 +210,13 @@ export const useTableBlockProps = () => {
         // 保留原有的 filter
         const storedFilter = block.service.params?.[1]?.filters || {};
 
-        if (selectedRow.includes(record[ctx.rowKey])) {
+        if (selectedRow.includes(record[ff])) {
           delete storedFilter[uid];
         } else {
           storedFilter[uid] = {
             $and: [
               {
-                [target.field || ctx.rowKey]: {
+                [target.field || ff]: {
                   [target.field ? '$in' : '$eq']: value,
                 },
               },

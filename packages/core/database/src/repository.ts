@@ -391,6 +391,17 @@ export class Repository<TModelAttributes extends {} = any, TCreationAttributes e
 
     let rows;
 
+    let primaryKeyKey = '';
+    for (const k in model.rawAttributes) {
+      if (model.rawAttributes[k].primaryKey) {
+        primaryKeyKey = k;
+      }
+    }
+
+    if (primaryKeyKey != '' && primaryKeyKey != 'id') {
+      opts.attributes.include.push([primaryKeyKey, 'id']);
+    }
+
     if (opts.include && opts.include.length > 0) {
       const eagerLoadingTree = EagerLoadingTree.buildFromSequelizeOptions({
         model,
@@ -515,10 +526,34 @@ export class Repository<TModelAttributes extends {} = any, TCreationAttributes e
 
     const values = guard.sanitize(options.values || {});
 
-    const instance = await this.model.create<any>(values, {
-      ...options,
-      transaction,
-    });
+    let temp = null;
+    // 需要判断是否存在
+    if (options.values.name) {
+      temp = await this.findOne({
+        filter: {
+          name: options.values.name,
+        },
+      });
+    }
+    const ff = temp;
+
+    let tt = null;
+
+    if (ff) {
+      this.database.logger.warn(options.values.name + '已经存在');
+      tt = ff;
+    } else {
+      tt = await this.model.create<any>(values, {
+        ...options,
+        transaction,
+      });
+      // const instance = await this.model.create<any>(values, {
+      //   ...options,
+      //   transaction,
+      // });
+    }
+
+    const instance = tt;
 
     if (!instance) {
       return;
@@ -702,7 +737,9 @@ export class Repository<TModelAttributes extends {} = any, TCreationAttributes e
       if (this.collection.model.primaryKeyAttributes.length > 1) {
         throw new Error(`filterByTk is not supported for composite primary key`);
       } else {
-        throw new Error(`filterByTk is not supported for collection that has no primary key`);
+        if (this.collection.model?.primaryKeyField == null) {
+          throw new Error(`filterByTk is not supported for collection that has no primary key`);
+        }
       }
     }
 

@@ -1,6 +1,6 @@
 import { Schema, useFieldSchema } from '@formily/react';
 import { useMemo } from 'react';
-import { useCollection, useCollectionManager } from '../..';
+import { useCollection_deprecated, useCollectionManager_deprecated } from '../..';
 import { SchemaInitializerItemType, useSchemaInitializer } from '../../application';
 import { SchemaInitializer } from '../../application/schema-initializer/SchemaInitializer';
 import { gridRowColWrap } from '../utils';
@@ -17,8 +17,8 @@ const recursiveParent = (schema: Schema) => {
 
 const useRelationFields = () => {
   const fieldSchema = useFieldSchema();
-  const { getCollectionFields } = useCollectionManager();
-  const collection = useCollection();
+  const { getCollectionFields } = useCollectionManager_deprecated();
+  const collection = useCollection_deprecated();
   let fields = [];
 
   if (fieldSchema['x-initializer']) {
@@ -182,26 +182,26 @@ const useFormCollections = (props) => {
 function useRecordBlocks() {
   const { options } = useSchemaInitializer();
   const { actionInitializers } = options;
-  const collection = useCollection();
-  const { getChildrenCollections } = useCollectionManager();
-  const formChildrenCollections = getChildrenCollections(collection.name);
-  const hasFormChildCollection = formChildrenCollections?.length > 0;
-  const detailChildrenCollections = getChildrenCollections(collection.name, true);
-  const hasDetailChildCollection = detailChildrenCollections?.length > 0;
+  const collection = useCollection_deprecated();
+  const { getChildrenCollections } = useCollectionManager_deprecated();
+  const collectionsWithView = getChildrenCollections(collection.name, true, collection.dataSource).filter(
+    (v) => v?.filterTargetKey,
+  );
+  const hasChildCollection = collectionsWithView?.length > 0;
   const modifyFlag = (collection.template !== 'view' || collection?.writableView) && collection.template !== 'sql';
   const detailChildren = useDetailCollections({
     ...options,
-    childrenCollections: detailChildrenCollections,
+    childrenCollections: collectionsWithView,
     collection,
   });
   const formChildren = useFormCollections({
     ...options,
-    childrenCollections: formChildrenCollections,
+    childrenCollections: collectionsWithView,
     collection,
   });
 
   const res = [];
-  if (hasDetailChildCollection) {
+  if (hasChildCollection) {
     res.push({
       name: 'details',
       type: 'subMenu',
@@ -217,7 +217,7 @@ function useRecordBlocks() {
     });
   }
 
-  if (hasFormChildCollection) {
+  if (hasChildCollection) {
     res.push({
       name: 'form',
       type: 'subMenu',
@@ -252,22 +252,27 @@ export const recordBlockInitializers = new SchemaInitializer({
       name: 'filterBlocks',
       title: '{{t("Filter blocks")}}',
       type: 'itemGroup',
+      useVisible() {
+        const collection = useCollection_deprecated();
+        return collection.fields.some((field) => ['hasMany', 'belongsToMany'].includes(field.type));
+      },
       children: [
         {
           name: 'filterForm',
           title: '{{t("Form")}}',
           Component: 'FilterFormBlockInitializer',
           useComponentProps() {
-            const collection = useCollection();
+            const collection = useCollection_deprecated();
             const toManyField = useMemo(
               () => collection.fields.filter((field) => ['hasMany', 'belongsToMany'].includes(field.type)),
               [collection.fields],
             );
 
             return {
-              filterItems(item) {
-                return toManyField.some((field) => field.target === item.name);
+              filterMenuItemChildren(collection) {
+                return toManyField.some((field) => field.target === collection.name);
               },
+              onlyCurrentDataSource: true,
             };
           },
         },
@@ -276,16 +281,17 @@ export const recordBlockInitializers = new SchemaInitializer({
           title: '{{t("Collapse")}}',
           Component: 'FilterCollapseBlockInitializer',
           useComponentProps() {
-            const collection = useCollection();
+            const collection = useCollection_deprecated();
             const toManyField = useMemo(
               () => collection.fields.filter((field) => ['hasMany', 'belongsToMany'].includes(field.type)),
               [collection.fields],
             );
 
             return {
-              filterItems(item) {
-                return toManyField.some((field) => field.target === item.name);
+              filterMenuItemChildren(collection) {
+                return toManyField.some((field) => field.target === collection.name);
               },
+              onlyCurrentDataSource: true,
             };
           },
         },

@@ -12,18 +12,18 @@ import {
   ApplicationContext,
   CollectionCategroriesContext,
   CollectionCategroriesProvider,
-  CollectionManagerContext,
-  CollectionManagerProvider,
   CurrentAppInfoContext,
+  DataSourceApplicationProvider,
   SchemaComponent,
   SchemaComponentOptions,
   Select,
-  collection,
   useAPIClient,
   useApp,
-  useCollectionManager,
+  useCollectionManager_deprecated,
   useCompile,
   useCurrentAppInfo,
+  useDataSourceManager,
+  useDataSource,
   useGlobalTheme,
 } from '@nocobase/client';
 import { App, Button, ConfigProvider, Layout, Spin, Switch, Tooltip } from 'antd';
@@ -50,6 +50,7 @@ import {
   getInheritCollections,
   getPopupContainer,
   useGCMTranslation,
+  collection,
 } from './utils';
 const { drop, groupBy, last, maxBy, minBy, take, uniq } = lodash;
 
@@ -221,6 +222,7 @@ function optimizeEdge(edge) {
 }
 
 export const CollapsedContext = createContext<any>({});
+CollapsedContext.displayName = 'CollapsedContext';
 const formatNodeData = () => {
   const layoutNodes = [];
   const edges = targetGraph.getEdges();
@@ -366,14 +368,14 @@ export const GraphDrawPage = React.memo(() => {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCollections = searchParams.get('collections');
   const options = useContext(SchemaOptionsContext);
-  const ctx = useContext(CollectionManagerContext);
   const api = useAPIClient();
   const compile = useCompile();
   const { t } = useGCMTranslation();
   const [collectionData, setCollectionData] = useState<any>([]);
   const [collectionList, setCollectionList] = useState<any>([]);
   const [loading, setLoading] = useState(false);
-  const { refreshCM, collections } = useCollectionManager();
+  const { collections, getCollections } = useCollectionManager_deprecated();
+  const dm = useDataSourceManager();
   const currentAppInfo = useCurrentAppInfo();
   const app = useApp();
   const {
@@ -382,7 +384,6 @@ export const GraphDrawPage = React.memo(() => {
   const categoryCtx = useContext(CollectionCategroriesContext);
   const scope = { ...options?.scope };
   const components = { ...options?.components };
-
   const saveGraphPositionAction = async (data) => {
     await api.resource('graphPositions').create({ values: data });
     await refreshPositions();
@@ -413,22 +414,26 @@ export const GraphDrawPage = React.memo(() => {
       refreshPositions();
     }
   };
-  const refreshGM = async (collections?) => {
-    const data = collections?.length > 0 ? collections : await refreshCM();
-    targetGraph.collections = data;
+  const reloadCallback = async (reloadFlag?) => {
+    const collections = getCollections();
+    if (!targetGraph) return;
+    targetGraph.collections = collections;
     targetGraph.updatePositionAction = updatePositionAction;
     targetGraph.saveGraphPositionAction = saveGraphPositionAction;
     const currentNodes = targetGraph.getNodes();
-    setCollectionData(data);
-    setCollectionList(data);
-    if (!currentNodes.length) {
+    setCollectionData(collections);
+    setCollectionList(collections);
+    if (!currentNodes.length || reloadFlag) {
       if (!selectedCollections) {
-        renderInitGraphCollection(data);
+        renderInitGraphCollection(collections);
       }
     } else {
-      renderDiffGraphCollection(data);
+      renderDiffGraphCollection(collections);
     }
   };
+
+  const dataSource = useDataSource();
+
   const initGraphCollections = () => {
     targetGraph = new Graph({
       container: document.getElementById('container')!,
@@ -500,17 +505,13 @@ export const GraphDrawPage = React.memo(() => {
         refWidth: 100,
         refHeight: 100,
       },
-      component: React.forwardRef((props, ref) => {
+      component: (props) => {
         return (
           <CurrentAppInfoContext.Provider value={currentAppInfo}>
-            <APIClientProvider apiClient={api}>
-              <SchemaComponentOptions inherit scope={scope} components={components}>
-                <CollectionCategroriesProvider {...categoryCtx}>
-                  <CollectionManagerProvider
-                    collections={targetGraph?.collections}
-                    refreshCM={refreshGM}
-                    interfaces={ctx.interfaces}
-                  >
+            <DataSourceApplicationProvider dataSourceManager={dm} dataSource={dataSource?.key}>
+              <APIClientProvider apiClient={api}>
+                <SchemaComponentOptions inherit scope={scope} components={components}>
+                  <CollectionCategroriesProvider {...categoryCtx}>
                     {/* TODO: 因为画布中的卡片是一次性注册进 Graph 的，这里的 theme 是存在闭包里的，因此当主题动态变更时，并不会触发卡片的重新渲染 */}
                     <ConfigProvider theme={theme as any}>
                       <div style={{ height: 'auto' }}>
@@ -521,13 +522,13 @@ export const GraphDrawPage = React.memo(() => {
                         </App>
                       </div>
                     </ConfigProvider>
-                  </CollectionManagerProvider>
-                </CollectionCategroriesProvider>
-              </SchemaComponentOptions>
-            </APIClientProvider>
+                  </CollectionCategroriesProvider>
+                </SchemaComponentOptions>
+              </APIClientProvider>
+            </DataSourceApplicationProvider>
           </CurrentAppInfoContext.Provider>
         );
-      }),
+      },
     });
     targetGraph.use(
       new Scroller({
@@ -1075,32 +1076,35 @@ export const GraphDrawPage = React.memo(() => {
   }, []);
 
   useEffect(() => {
+    dataSource.addReloadCallback(reloadCallback);
+
+    return () => {
+      dataSource.removeReloadCallback(reloadCallback);
+    };
+  }, []);
+  useEffect(() => {
     setLoading(true);
     refreshPositions()
       .then(async () => {
-        await refreshGM(collections);
+        if (selectedCollections && collectionList.length) {
+          const selectKeys = selectedCollections?.split(',');
+          const data = collectionList.filter((v) => selectKeys.includes(v.name));
+          renderInitGraphCollection(data, false);
+          handelResetLayout(true);
+          targetGraph.selectedCollections = selectedCollections;
+        } else {
+          !selectedCollections && reloadCallback(true);
+        }
         setLoading(false);
       })
       .catch((err) => {
         setLoading(false);
         throw err;
       });
-  }, []);
-
-  useEffect(() => {
-    if (selectedCollections && collectionList.length) {
-      const selectKeys = selectedCollections?.split(',');
-      const data = collectionList.filter((v) => selectKeys.includes(v.name));
-      renderInitGraphCollection(data, false);
-      handelResetLayout(true);
-      targetGraph.selectedCollections = selectedCollections;
-    } else {
-      !selectedCollections && renderInitGraphCollection(collections, false);
-    }
     return () => {
       cleanGraphContainer();
     };
-  }, [searchParams, collectionList]);
+  }, [searchParams]);
 
   const loadCollections = async () => {
     return targetGraph.collections?.map((collection: any) => ({
@@ -1112,7 +1116,7 @@ export const GraphDrawPage = React.memo(() => {
     <Layout>
       <div className={styles.graphCollectionContainerClass}>
         <Spin spinning={loading}>
-          <CollectionManagerProvider collections={targetGraph?.collections} refreshCM={refreshGM}>
+          <DataSourceApplicationProvider dataSourceManager={dm}>
             <CollapsedContext.Provider value={{ collectionList, handleSearchCollection }}>
               <div className={cx(styles.collectionListClass)}>
                 <SchemaComponent
@@ -1192,7 +1196,7 @@ export const GraphDrawPage = React.memo(() => {
                                 type: 'void',
                                 'x-component': 'Action',
                                 'x-component-props': {
-                                  component: forwardRef(() => {
+                                  component: () => {
                                     return (
                                       <Tooltip title={t('Auto layout')} getPopupContainer={getPopupContainer}>
                                         <Button
@@ -1204,7 +1208,7 @@ export const GraphDrawPage = React.memo(() => {
                                         </Button>
                                       </Tooltip>
                                     );
-                                  }),
+                                  },
                                   useAction: () => {
                                     return {
                                       run() {},
@@ -1261,7 +1265,7 @@ export const GraphDrawPage = React.memo(() => {
                 />
               </div>
             </CollapsedContext.Provider>
-          </CollectionManagerProvider>
+          </DataSourceApplicationProvider>
           <div id="container" style={{ width: '100vw' }}></div>
           <div
             id="graph-minimap"

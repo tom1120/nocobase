@@ -14,13 +14,15 @@ import { RemoteDocumentTitlePlugin } from '../document-title';
 import { PinnedListPlugin } from '../plugin-manager';
 import { PMPlugin } from '../pm';
 import { AdminLayoutPlugin, RouteSchemaComponent } from '../route-switch';
-import { AntdSchemaComponentPlugin, SchemaComponentPlugin, menuItemInitializer } from '../schema-component';
+import { AntdSchemaComponentPlugin, SchemaComponentPlugin } from '../schema-component';
 import { ErrorFallback } from '../schema-component/antd/error-fallback';
 import { AssociationFilterPlugin, SchemaInitializerPlugin } from '../schema-initializer';
+import { SchemaSettingsPlugin } from '../schema-settings';
 import { BlockTemplateDetails, BlockTemplatePage } from '../schema-templates';
 import { SystemSettingsPlugin } from '../system-settings';
 import { CurrentUserProvider, CurrentUserSettingsMenuProvider } from '../user';
 import { LocalePlugin } from './plugins/LocalePlugin';
+import { CollectionPlugin } from '../collection-manager';
 
 const AppSpin = () => {
   return (
@@ -63,30 +65,33 @@ const useErrorProps = (app: Application, error: any) => {
   }
 };
 
-const AppError: FC<{ error: Error; app: Application }> = observer(({ app, error }) => {
-  const props = useErrorProps(app, error);
-  return (
-    <div>
-      <Result
-        className={css`
-          top: 50%;
-          position: absolute;
-          width: 100%;
-          transform: translate(0, -50%);
-        `}
-        status="error"
-        title={app.i18n.t('App error')}
-        subTitle={app.i18n.t(error?.message)}
-        extra={[
-          <Button type="primary" key="try" onClick={() => window.location.reload()}>
-            {app.i18n.t('Try again')}
-          </Button>,
-        ]}
-        {...props}
-      />
-    </div>
-  );
-});
+const AppError: FC<{ error: Error; app: Application }> = observer(
+  ({ app, error }) => {
+    const props = useErrorProps(app, error);
+    return (
+      <div>
+        <Result
+          className={css`
+            top: 50%;
+            position: absolute;
+            width: 100%;
+            transform: translate(0, -50%);
+          `}
+          status="error"
+          title={app.i18n.t('App error')}
+          subTitle={app.i18n.t(error?.message)}
+          extra={[
+            <Button type="primary" key="try" onClick={() => window.location.reload()}>
+              {app.i18n.t('Try again')}
+            </Button>,
+          ]}
+          {...props}
+        />
+      </div>
+    );
+  },
+  { displayName: 'AppError' },
+);
 
 const getProps = (app: Application) => {
   if (app.ws.serverDown) {
@@ -193,39 +198,45 @@ const getProps = (app: Application) => {
   return {};
 };
 
-const AppMaintaining: FC<{ app: Application; error: Error }> = observer(({ app }) => {
-  const { icon, status, title, subTitle } = getProps(app);
-  return (
-    <div>
-      <Result
-        className={css`
-          top: 50%;
-          position: absolute;
-          width: 100%;
-          transform: translate(0, -50%);
-        `}
-        icon={icon}
-        status={status}
-        title={app.i18n.t(title)}
-        subTitle={app.i18n.t(subTitle)}
-        // extra={[
-        //   <Button type="primary" key="try" onClick={() => window.location.reload()}>
-        //     {app.i18n.t('Try again')}
-        //   </Button>,
-        // ]}
-      />
-    </div>
-  );
-});
+const AppMaintaining: FC<{ app: Application; error: Error }> = observer(
+  ({ app }) => {
+    const { icon, status, title, subTitle } = getProps(app);
+    return (
+      <div>
+        <Result
+          className={css`
+            top: 50%;
+            position: absolute;
+            width: 100%;
+            transform: translate(0, -50%);
+          `}
+          icon={icon}
+          status={status}
+          title={app.i18n.t(title)}
+          subTitle={app.i18n.t(subTitle)}
+          // extra={[
+          //   <Button type="primary" key="try" onClick={() => window.location.reload()}>
+          //     {app.i18n.t('Try again')}
+          //   </Button>,
+          // ]}
+        />
+      </div>
+    );
+  },
+  { displayName: 'AppMaintaining' },
+);
 
-const AppMaintainingDialog: FC<{ app: Application; error: Error }> = observer(({ app }) => {
-  const { icon, status, title, subTitle } = getProps(app);
-  return (
-    <Modal open={true} footer={null} closable={false}>
-      <Result icon={icon} status={status} title={app.i18n.t(title)} subTitle={app.i18n.t(subTitle)} />
-    </Modal>
-  );
-});
+const AppMaintainingDialog: FC<{ app: Application; error: Error }> = observer(
+  ({ app }) => {
+    const { icon, status, title, subTitle } = getProps(app);
+    return (
+      <Modal open={true} footer={null} closable={false}>
+        <Result icon={icon} status={status} title={app.i18n.t(title)} subTitle={app.i18n.t(subTitle)} />
+      </Modal>
+    );
+  },
+  { displayName: 'AppMaintainingDialog' },
+);
 
 const AppNotFound = () => {
   const navigate = useNavigate();
@@ -261,8 +272,6 @@ export class NocoBaseBuildInPlugin extends Plugin {
 
     this.app.use(CurrentUserProvider);
     this.app.use(CurrentUserSettingsMenuProvider);
-
-    this.app.schemaInitializerManager.add(menuItemInitializer);
   }
 
   addRoutes() {
@@ -311,10 +320,12 @@ export class NocoBaseBuildInPlugin extends Plugin {
     });
     await this.app.pm.add(SchemaComponentPlugin, { name: 'schema-component' });
     await this.app.pm.add(SchemaInitializerPlugin, { name: 'schema-initializer' });
+    await this.app.pm.add(SchemaSettingsPlugin, { name: 'schema-settings' });
     await this.app.pm.add(BlockSchemaComponentPlugin, { name: 'block-schema-component' });
     await this.app.pm.add(AntdSchemaComponentPlugin, { name: 'antd-schema-component' });
     await this.app.pm.add(ACLPlugin, { name: 'builtin-acl' });
     await this.app.pm.add(RemoteDocumentTitlePlugin, { name: 'remote-document-title' });
     await this.app.pm.add(PMPlugin, { name: 'builtin-pm' });
+    await this.app.pm.add(CollectionPlugin, { name: 'builtin-collection' });
   }
 }

@@ -1,11 +1,7 @@
 import { css } from '@emotion/css';
 import { useField, useFieldSchema } from '@formily/react';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useRecord } from '../../../record-provider';
-import { useDesignable } from '../../hooks';
-import { useIsBlockInPage } from './hooks/useIsBlockInPage';
-import { SchemaSettingsSwitchItem } from '../../../schema-settings';
 
 const FixedBlockContext = React.createContext<{
   setFixedBlock: (value: string | false) => void;
@@ -44,16 +40,11 @@ export const useFixedBlock = () => {
 export const FixedBlockWrapper: React.FC = (props) => {
   const fixedBlock = useFixedSchema();
   const { height, fixedBlockUID } = useFixedBlock();
-  const record = useRecord();
-  const isPopup = Object.keys(record).length;
-  if (isPopup) {
-    return <>{props.children}</>;
-  }
   /**
    * The fixedBlockUID of false means that the page has no fixed blocks
    * isPopup means that the FixedBlock is in the popup mode
    */
-  if (!fixedBlock && fixedBlockUID) return null;
+  if (!fixedBlock && fixedBlockUID) return <>{props.children}</>;
   return (
     <div
       className="nb-fixed-block"
@@ -63,38 +54,6 @@ export const FixedBlockWrapper: React.FC = (props) => {
     >
       {props.children}
     </div>
-  );
-};
-
-export const FixedBlockDesignerItem = () => {
-  const field = useField();
-  const { t } = useTranslation();
-  const fieldSchema = useFieldSchema();
-  const { dn } = useDesignable();
-  const { inFixedBlock } = useFixedBlock();
-  const { isBlockInPage } = useIsBlockInPage();
-
-  if (!isBlockInPage() || !inFixedBlock) {
-    return null;
-  }
-  return (
-    <SchemaSettingsSwitchItem
-      title={t('Fix block')}
-      checked={fieldSchema['x-decorator-props']?.fixedBlock}
-      onChange={async (fixedBlock) => {
-        const decoratorProps = {
-          ...fieldSchema['x-decorator-props'],
-          fixedBlock,
-        };
-        await dn.emit('patch', {
-          schema: {
-            ['x-uid']: fieldSchema['x-uid'],
-            'x-decorator-props': decoratorProps,
-          },
-        });
-        field.decoratorProps = fieldSchema['x-decorator-props'] = decoratorProps;
-      }}
-    />
   );
 };
 

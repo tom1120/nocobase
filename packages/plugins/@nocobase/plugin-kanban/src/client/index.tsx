@@ -1,15 +1,8 @@
-import React, { useContext } from 'react';
-import {
-  Plugin,
-  Action,
-  CurrentAppInfoProvider,
-  SchemaComponentOptions,
-  CollectionManagerContext,
-} from '@nocobase/client';
+import React from 'react';
+import { Plugin, Action, CurrentAppInfoProvider, SchemaComponentOptions } from '@nocobase/client';
 import { Kanban } from './Kanban';
 import { KanbanCard } from './Kanban.Card';
 import { KanbanCardDesigner, kanbanCardInitializers } from './Kanban.Card.Designer';
-import { KanbanCardDesignerTitleSwitch } from './Kanban.Card.Designer.TitleSwitch';
 import { KanbanCardViewer } from './Kanban.CardViewer';
 import { KanbanDesigner } from './Kanban.Designer';
 import { kanbanActionInitializers } from './KanbanActionInitializers';
@@ -21,20 +14,18 @@ Kanban.Card = KanbanCard;
 Kanban.CardAdder = Action;
 Kanban.CardViewer = KanbanCardViewer;
 Kanban.Card.Designer = KanbanCardDesigner;
-Kanban.Card.Designer.TitleSwitch = KanbanCardDesignerTitleSwitch;
 Kanban.Designer = KanbanDesigner;
 
 const KanbanV2 = Kanban;
 
 const KanbanPluginProvider = React.memo((props) => {
-  const ctx = useContext(CollectionManagerContext);
   return (
     <CurrentAppInfoProvider>
       <SchemaComponentOptions
         components={{ Kanban, KanbanBlockProvider, KanbanV2, KanbanBlockInitializer }}
         scope={{ useKanbanBlockProps }}
       >
-        <CollectionManagerContext.Provider value={{ ...ctx }}>{props.children}</CollectionManagerContext.Provider>
+        {props.children}
       </SchemaComponentOptions>
     </CurrentAppInfoProvider>
   );

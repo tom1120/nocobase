@@ -20,14 +20,14 @@ interface IPluginInfo extends IPluginCard {
 function PluginInfo(props: IPluginInfo) {
   const { data, onClick } = props;
   const app = useApp();
-  const { name, displayName, isCompatible, packageName, updatable, builtIn, enabled, description, type, error } = data;
+  const { name, displayName, isCompatible, packageName, updatable, builtIn, enabled, description, error, homepage } =
+    data;
   const { styles, theme } = useStyles();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const api = useAPIClient();
   const { modal } = App.useApp();
   const [showUploadForm, setShowUploadForm] = useState(false);
-  const [enabledVal, setEnabledVal] = useState(enabled);
   const reload = () => window.location.reload();
   const title = displayName || name || packageName;
   return (
@@ -78,7 +78,15 @@ function PluginInfo(props: IPluginInfo) {
         `}
         actions={[
           <Space split={<Divider type="vertical" />} key={'1'}>
-            <a key={'5'}>
+            <a
+              key={'5'}
+              href={homepage}
+              target="_blank"
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+              rel="noreferrer"
+            >
               <ReadOutlined /> {t('Docs')}
             </a>
             {updatable && (
@@ -143,14 +151,28 @@ function PluginInfo(props: IPluginInfo) {
                 message.error(t("Dependencies check failed, can't enable."));
                 return;
               }
-              await api.request({
-                url: `pm:${checked ? 'enable' : 'disable'}`,
-                params: {
-                  filterByTk: name,
-                },
-              });
+              if (!checked) {
+                modal.confirm({
+                  title: t('Are you sure to disable this plugin?'),
+                  onOk: async () => {
+                    await api.request({
+                      url: `pm:disable`,
+                      params: {
+                        filterByTk: name,
+                      },
+                    });
+                  },
+                });
+              } else {
+                await api.request({
+                  url: `pm:enable`,
+                  params: {
+                    filterByTk: name,
+                  },
+                });
+              }
             }}
-            checked={enabledVal}
+            checked={!!enabled}
           ></Switch>,
         ].filter(Boolean)}
       >

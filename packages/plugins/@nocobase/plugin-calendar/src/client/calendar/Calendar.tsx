@@ -1,6 +1,6 @@
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
-import { createForm } from '@formily/core';
 import { RecursionField, Schema, observer, useFieldSchema } from '@formily/react';
+import { ActionContextProvider, RecordProvider, useCollectionParentRecordData, useProps } from '@nocobase/client';
 import { parseExpression } from 'cron-parser';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -8,14 +8,13 @@ import get from 'lodash/get';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Calendar as BigCalendar, View, dayjsLocalizer } from 'react-big-calendar';
 import * as dates from 'react-big-calendar/lib/utils/dates';
+import { i18nt, useTranslation } from '../../locale';
 import Header from './components/Header';
 import { CalendarToolbarContext } from './context';
 import GlobalStyle from './global.style';
 import useStyle from './style';
 import type { ToolbarProps } from './types';
 import { formatDate } from './utils';
-import { ActionContextProvider, RecordProvider, useProps, i18n } from '@nocobase/client';
-import { i18nt, useTranslation } from '../../locale';
 
 const Weeks = ['month', 'week', 'day'] as View[];
 const localizer = dayjsLocalizer(dayjs);
@@ -142,7 +141,7 @@ const useEvents = (dataSource: any, fieldNames: any, date: Date, view: (typeof W
 
 const CalendarRecordViewer = (props) => {
   const { visible, setVisible, record } = props;
-  const form = useMemo(() => createForm(), [record]);
+  const parentRecordData = useCollectionParentRecordData();
   const fieldSchema = useFieldSchema();
   const eventSchema: Schema = useMemo(
     () =>
@@ -163,7 +162,7 @@ const CalendarRecordViewer = (props) => {
     eventSchema && (
       <DeleteEventContext.Provider value={{ close }}>
         <ActionContextProvider value={{ visible, setVisible }}>
-          <RecordProvider record={record}>
+          <RecordProvider record={record} parent={parentRecordData}>
             <RecursionField schema={eventSchema} name={eventSchema.name} />
           </RecordProvider>
         </ActionContextProvider>
@@ -185,9 +184,9 @@ export const Calendar: any = observer(
     const components = useMemo(() => {
       return {
         toolbar: (props) => <Toolbar {...props} showLunar={showLunar}></Toolbar>,
-        week: {
-          header: (props) => <Header {...props} type="week" showLunar={showLunar}></Header>,
-        },
+        // week: {
+        //   header: (props) => <Header {...props} type="week" showLunar={showLunar}></Header>,
+        // },
         month: {
           dateHeader: (props) => <Header {...props} showLunar={showLunar}></Header>,
         },
@@ -218,7 +217,6 @@ export const Calendar: any = observer(
       noEventsInRange: i18nt('None'),
       showMore: (count) => i18nt('{{count}} more items', { count }),
     };
-
     return wrapSSR(
       <div className={`${hashId} ${containerClassName}`} style={{ height: fixedBlock ? '100%' : 700 }}>
         <GlobalStyle />

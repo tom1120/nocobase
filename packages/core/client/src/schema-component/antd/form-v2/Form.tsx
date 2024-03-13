@@ -149,7 +149,7 @@ const WithForm = (props: WithFormProps) => {
 
                     return result;
                   },
-                  getSubscriber(action, field, rule, form, variables, localVariables),
+                  getSubscriber(action, field, rule, variables, localVariables),
                   { fireImmediately: true },
                 ),
               );
@@ -229,7 +229,6 @@ function getSubscriber(
   action: any,
   field: any,
   rule: any,
-  form: FormilyForm<any>,
   variables: VariablesContextType,
   localVariables: VariableOption[],
 ): (value: string, oldValue: string) => void {
@@ -240,7 +239,6 @@ function getSubscriber(
       value: action.value,
       field,
       condition: rule.condition,
-      values: form.values,
       variables,
       localVariables,
     });
@@ -251,7 +249,7 @@ function getSubscriber(
       const fieldName = getFieldNameByOperator(action.operator);
 
       // 防止重复赋值
-      if (!field.stateOfLinkageRules[fieldName]) {
+      if (!field.stateOfLinkageRules?.[fieldName]) {
         return;
       }
 
@@ -270,6 +268,10 @@ function getSubscriber(
         }
       } else {
         field[fieldName] = lastState?.value;
+        //字段隐藏时清空数据
+        if (fieldName === 'display' && lastState?.value === 'none') {
+          field.value = null;
+        }
       }
 
       // 在这里清空 field.stateOfLinkageRules，就可以保证：当条件再次改变时，如果该字段没有和任何条件匹配，则需要把对应的值恢复到初始值；
@@ -300,15 +302,24 @@ function getFieldNameByOperator(operator: ActionType) {
 
 function getFieldValuesInCondition({ linkageRules, formValues }) {
   return linkageRules.map((rule) => {
-    const type = Object.keys(rule.condition)[0] || '$and';
-    const conditions = rule.condition[type];
+    const run = (condition) => {
+      const type = Object.keys(condition)[0] || '$and';
+      const conditions = condition[type];
 
-    return conditions
-      .map((condition) => {
-        const path = getTargetField(condition).join('.');
-        return getValuesByPath(formValues, path);
-      })
-      .filter(Boolean);
+      return conditions
+        .map((condition) => {
+          // fix https://nocobase.height.app/T-3251
+          if ('$and' in condition || '$or' in condition) {
+            return run(condition);
+          }
+
+          const path = getTargetField(condition).join('.');
+          return getValuesByPath(formValues, path);
+        })
+        .filter(Boolean);
+    };
+
+    return run(rule.condition);
   });
 }
 

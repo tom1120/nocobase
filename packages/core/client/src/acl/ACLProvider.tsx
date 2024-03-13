@@ -2,16 +2,19 @@ import { Field } from '@formily/core';
 import { Schema, useField, useFieldSchema } from '@formily/react';
 import React, { createContext, useContext, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
+import { omit } from 'lodash';
 import { useAPIClient, useRequest } from '../api-client';
 import { useAppSpin } from '../application/hooks/useAppSpin';
 import { useBlockRequestContext } from '../block-provider/BlockProvider';
-import { useCollection, useCollectionManager } from '../collection-manager';
+import { useCollection_deprecated, useCollectionManager_deprecated } from '../collection-manager';
 import { useResourceActionContext } from '../collection-manager/ResourceActionProvider';
 import { useRecord } from '../record-provider';
 import { SchemaComponentOptions, useDesignable } from '../schema-component';
 import { useApp } from '../application';
+import { useDataSourceKey } from '../data-source/data-source/DataSourceProvider';
 
 export const ACLContext = createContext<any>({});
+ACLContext.displayName = 'ACLContext';
 
 // TODO: delete this，replace by `ACLPlugin`
 export const ACLProvider = (props) => {
@@ -88,10 +91,13 @@ export const useACLContext = () => {
 };
 
 export const ACLActionParamsContext = createContext<any>({});
+ACLActionParamsContext.displayName = 'ACLActionParamsContext';
 
 export const useACLRolesCheck = () => {
   const ctx = useContext(ACLContext);
-  const data = ctx?.data?.data;
+  const dataSourceName = useDataSourceKey();
+  const { dataSources: dataSourcesAcl } = ctx?.data?.meta || {};
+  const data = { ...ctx?.data?.data, ...omit(dataSourcesAcl?.[dataSourceName], 'snippets') };
   const getActionAlias = (actionPath: string) => {
     const actionName = actionPath.split(':').pop();
     return data?.actionAlias?.[actionName] || actionName;
@@ -138,8 +144,8 @@ const getIgnoreScope = (options: any = {}) => {
 
 const useAllowedActions = () => {
   const service = useResourceActionContext();
-  const result = useBlockRequestContext() || { service };
-  return result?.allowedActions ?? result?.service?.data?.meta?.allowedActions;
+  const result = useBlockRequestContext();
+  return result?.allowedActions ?? service?.data?.meta?.allowedActions;
 };
 
 const useResourceName = () => {
@@ -151,7 +157,7 @@ const useResourceName = () => {
 export function useACLRoleContext() {
   const { data, getActionAlias, inResources, getResourceActionParams, getStrategyActionParams } = useACLRolesCheck();
   const allowedActions = useAllowedActions();
-  const { getCollectionJoinField } = useCollectionManager();
+  const { getCollectionJoinField } = useCollectionManager_deprecated();
   const verifyScope = (actionName: string, recordPkValue: any) => {
     const actionAlias = getActionAlias(actionName);
     if (!Array.isArray(allowedActions?.[actionAlias])) {
@@ -208,14 +214,14 @@ export const useACLActionParamsContext = () => {
 };
 
 export const useRecordPkValue = () => {
-  const { getPrimaryKey } = useCollection();
+  const { getPrimaryKey } = useCollection_deprecated();
   const record = useRecord();
   const primaryKey = getPrimaryKey();
   return record?.[primaryKey];
 };
 
 export const ACLActionProvider = (props) => {
-  const { template, writableView } = useCollection();
+  const { template, writableView } = useCollection_deprecated();
   const recordPkValue = useRecordPkValue();
   const resource = useResourceName();
   const { parseAction } = useACLRoleContext();

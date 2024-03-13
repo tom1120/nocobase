@@ -5,8 +5,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ResourceActionContext, useCompile } from '../../../';
 import { useAPIClient } from '../../../api-client';
-import { getOptions } from '../../Configuration/interfaces';
-import { useCollectionManager } from '../../hooks/useCollectionManager';
+import { useFieldInterfaceOptions } from '../../Configuration/interfaces';
+import { useCollectionManager_deprecated } from '../../hooks/useCollectionManager_deprecated';
 
 const getInterfaceOptions = (data, type) => {
   const interfaceOptions = [];
@@ -32,9 +32,10 @@ const PreviewCom = (props) => {
   const field: any = useField();
   const form = useForm();
   const { getCollection, getInterface, getCollectionFields, getInheritCollections, getParentCollectionFields } =
-    useCollectionManager();
+    useCollectionManager_deprecated();
   const compile = useCompile();
-  const initOptions = getOptions().filter((v) => !['relation', 'systemInfo'].includes(v.key));
+  const options = useFieldInterfaceOptions();
+  const initOptions = options.filter((v) => !['relation', 'systemInfo'].includes(v.key));
   useEffect(() => {
     const data = [];
     sourceCollections.forEach((item) => {
@@ -59,12 +60,12 @@ const PreviewCom = (props) => {
       const children = collection.fields
         .filter((v) => !['hasOne', 'hasMany', 'belongsToMany'].includes(v?.type))
         ?.map((v) => {
-          return { value: v.name, key: v.name, label: t(v.uiSchema?.title) };
+          return { value: v.name, key: v.name, label: t(v.uiSchema?.title || v.name) };
         })
         .concat(result);
       data.push({
         value: item,
-        label: t(collection.title),
+        label: t(collection.title || collection.name),
         children,
       });
     });
@@ -186,7 +187,7 @@ const PreviewCom = (props) => {
             {data.map((group) => (
               <Select.OptGroup key={group.key} label={compile(group.label)}>
                 {group.children.map((item) => (
-                  <Select.Option key={item.value} value={item.value}>
+                  <Select.Option key={item.value} value={item.name}>
                     {compile(item.label)}
                   </Select.Option>
                 ))}

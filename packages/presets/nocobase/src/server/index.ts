@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 export class PresetNocoBase extends Plugin {
   builtInPlugins = [
+    'data-source-manager',
     'error-handler',
     'collection-manager',
     'ui-schema-storage',
@@ -15,10 +16,10 @@ export class PresetNocoBase extends Plugin {
     'acl',
     'china-region',
     'workflow',
+    'workflow-action-trigger',
     'workflow-aggregate',
     'workflow-delay',
     'workflow-dynamic-calculation',
-    'workflow-form-trigger',
     'workflow-loop',
     'workflow-manual',
     'workflow-parallel',
@@ -32,7 +33,6 @@ export class PresetNocoBase extends Plugin {
     'formula-field',
     'data-visualization',
     'auth',
-    'sms-auth',
     'logger',
     'custom-request',
     'calendar',
@@ -59,6 +59,7 @@ export class PresetNocoBase extends Plugin {
     'theme-editor>=0.11.1-alpha.1',
     'api-doc>=0.13.0-alpha.1',
     'cas>=0.13.0-alpha.5',
+    'sms-auth>=0.10.0-alpha.2',
   ];
 
   splitNames(name: string) {
@@ -169,10 +170,11 @@ export class PresetNocoBase extends Plugin {
 
   async install() {
     await this.createIfNotExists();
-    this.log.info('install built-in plugins');
+    this.log.info('start install built-in plugins');
     await this.pm.repository.init();
     await this.pm.load();
     await this.pm.install();
+    this.log.info('finish install built-in plugins');
   }
 
   async upgrade() {

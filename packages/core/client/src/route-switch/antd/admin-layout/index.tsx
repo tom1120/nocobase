@@ -1,9 +1,9 @@
 import { css } from '@emotion/css';
 import { useSessionStorageState } from 'ahooks';
-import { App, ConfigProvider, Layout } from 'antd';
+import { App, ConfigProvider, Divider, Layout } from 'antd';
 import { createGlobalStyle } from 'antd-style';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Outlet, useMatch, useNavigate, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useMatch, useNavigate, useParams } from 'react-router-dom';
 import {
   ACLRolesCheckProvider,
   CurrentAppInfoProvider,
@@ -25,7 +25,7 @@ import {
 } from '../../../';
 import { Plugin } from '../../../application/Plugin';
 import { useAppSpin } from '../../../application/hooks/useAppSpin';
-import { useCollectionManager } from '../../../collection-manager';
+import { Help } from '../../../user/Help';
 import { VariablesProvider } from '../../../variables';
 
 const filterByACL = (schema, options) => {
@@ -54,6 +54,7 @@ const filterByACL = (schema, options) => {
 };
 
 const SchemaIdContext = createContext(null);
+SchemaIdContext.displayName = 'SchemaIdContext';
 const useMenuProps = () => {
   const defaultSelectedUid = useContext(SchemaIdContext);
   return {
@@ -68,6 +69,7 @@ const MenuEditor = (props) => {
   const { setTitle } = useDocumentTitle();
   const navigate = useNavigate();
   const params = useParams<any>();
+  const location = useLocation();
   const isMatchAdmin = useMatch('/admin');
   const isMatchAdminName = useMatch('/admin/:name');
   const defaultSelectedUid = params.name;
@@ -124,13 +126,26 @@ const MenuEditor = (props) => {
     },
   );
 
+  const match = useMatch('/admin/:name');
+
+  useEffect(() => {
+    if (match) {
+      const schema = filterByACL(data?.data, ctx);
+      const s = findByUid(schema, defaultSelectedUid);
+      if (s) {
+        setTitle(s.title);
+      }
+    }
+  }, [data?.data, location.pathname, defaultSelectedUid]);
+
   useEffect(() => {
     const properties = Object.values(current?.root?.properties || {}).shift()?.['properties'] || data?.data?.properties;
-    if (properties && sideMenuRef.current) {
-      const pageType = Object.values(properties).find(
-        (item) => item['x-uid'] === params.name && item['x-component'] === 'Menu.Item',
-      );
-      if (pageType) {
+    if (sideMenuRef.current) {
+      const pageType =
+        properties &&
+        Object.values(properties).find((item) => item['x-uid'] === params.name && item['x-component'] === 'Menu.Item');
+      const isSettingPage = location?.pathname.includes('/settings');
+      if (pageType || isSettingPage) {
         sideMenuRef.current.style.display = 'none';
       } else {
         sideMenuRef.current.style.display = 'block';
@@ -263,11 +278,9 @@ const SetThemeOfHeaderSubmenu = ({ children }) => {
 export const InternalAdminLayout = (props: any) => {
   const sideMenuRef = useRef<HTMLDivElement>();
   const result = useSystemSettings();
-  const { service } = useCollectionManager();
+  // const { service } = useCollectionManager_deprecated();
   const params = useParams<any>();
   const { token } = useToken();
-  const { render } = useAppSpin();
-
   return (
     <Layout>
       <GlobalStyleForAdminLayout />
@@ -277,6 +290,9 @@ export const InternalAdminLayout = (props: any) => {
           .ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-selected,
           .ant-menu-submenu-horizontal.ant-menu-submenu-selected {
             background-color: ${token.colorBgHeaderMenuActive} !important;
+            color: ${token.colorTextHeaderMenuActive} !important;
+          }
+          .ant-menu-submenu-horizontal.ant-menu-submenu-selected > .ant-menu-submenu-title {
             color: ${token.colorTextHeaderMenuActive} !important;
           }
           .ant-menu-dark.ant-menu-horizontal > .ant-menu-item:hover {
@@ -360,6 +376,16 @@ export const InternalAdminLayout = (props: any) => {
             `}
           >
             <PinnedPluginList />
+            <ConfigProvider
+              theme={{
+                token: {
+                  colorSplit: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
+            >
+              <Divider type="vertical" />
+            </ConfigProvider>
+            <Help />
             <CurrentUser />
           </div>
         </div>
@@ -415,7 +441,8 @@ export const InternalAdminLayout = (props: any) => {
             pointer-events: none;
           `}
         ></header>
-        {service.contentLoading ? render() : <Outlet />}
+        <Outlet />
+        {/* {service.contentLoading ? render() : <Outlet />} */}
       </Layout.Content>
     </Layout>
   );

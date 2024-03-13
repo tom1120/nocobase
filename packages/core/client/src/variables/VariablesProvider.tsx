@@ -1,10 +1,10 @@
-import { untracked } from '@formily/reactive';
+import { raw, untracked } from '@formily/reactive';
 import { getValuesByPath } from '@nocobase/utils/client';
 import _ from 'lodash';
 import React, { createContext, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAPIClient } from '../api-client';
-import type { CollectionFieldOptions } from '../collection-manager';
-import { useCollectionManager } from '../collection-manager';
+import type { CollectionFieldOptions_deprecated } from '../collection-manager';
+import { useCollectionManager_deprecated } from '../collection-manager';
 import { useCompile } from '../schema-component';
 import useBuiltInVariables from './hooks/useBuiltinVariables';
 import { VariableOption, VariablesContextType } from './types';
@@ -16,6 +16,7 @@ import { isVariable } from './utils/isVariable';
 import { uniq } from './utils/uniq';
 
 export const VariablesContext = createContext<VariablesContextType>(null);
+VariablesContext.displayName = 'VariablesContext';
 
 const variableToCollectionName = {};
 
@@ -33,7 +34,7 @@ const getFieldPath = (variablePath: string, variableToCollectionName: Record<str
 const VariablesProvider = ({ children }) => {
   const ctxRef = useRef<Record<string, any>>({});
   const api = useAPIClient();
-  const { getCollectionJoinField } = useCollectionManager();
+  const { getCollectionJoinField } = useCollectionManager_deprecated();
   const compile = useCompile();
   const { builtinVariables } = useBuiltInVariables();
 
@@ -68,7 +69,7 @@ const VariablesProvider = ({ children }) => {
       let current = mergeCtxWithLocalVariables(ctxRef.current, localVariables);
       let collectionName = getFieldPath(variableName, _variableToCollectionName);
 
-      if (!current[variableName]) {
+      if (!(variableName in current)) {
         throw new Error(`VariablesProvider: ${variableName} is not found`);
       }
 
@@ -78,7 +79,7 @@ const VariablesProvider = ({ children }) => {
         }
 
         const key = list[index];
-        const associationField: CollectionFieldOptions = getCollectionJoinField(
+        const associationField: CollectionFieldOptions_deprecated = getCollectionJoinField(
           getFieldPath(list.slice(0, index + 1).join('.'), _variableToCollectionName),
         );
         if (Array.isArray(current)) {
@@ -124,7 +125,13 @@ const VariablesProvider = ({ children }) => {
             data = await waitForData;
             clearRequested(url);
           }
-          current[key] = data.data.data;
+
+          // fix https://nocobase.height.app/T-3144，使用 `raw` 方法是为了避免触发 autorun，以修复 T-3144 的错误
+          if (!raw(current)[key]) {
+            // 把接口返回的数据保存起来，避免重复请求
+            raw(current)[key] = data.data.data;
+          }
+
           current = getValuesByPath(current, key);
         } else {
           current = getValuesByPath(current, key);

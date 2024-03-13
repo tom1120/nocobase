@@ -10,6 +10,7 @@ export type ChartConfigCurrent = {
   schema: ISchema;
   field: any;
   collection: string;
+  dataSource: string;
   service: any;
   initialValues?: any;
   data: any[];
@@ -23,6 +24,7 @@ export const ChartConfigContext = createContext<{
 }>({
   visible: true,
 });
+ChartConfigContext.displayName = 'ChartConfigContext';
 
 export const ChartConfigProvider: React.FC = (props) => {
   const { insertAdjacent } = useDesignable();

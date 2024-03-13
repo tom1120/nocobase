@@ -4,14 +4,27 @@ import { getDefaultFormat, str2moment } from '@nocobase/utils/client';
 import { Tag } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
-import { CollectionFieldOptions, useCollectionManager } from '../../../collection-manager';
+import { CollectionFieldOptions_deprecated, useCollectionManager_deprecated } from '../../../collection-manager';
+import { Field } from '@formily/core';
+
+export const useLabelUiSchemaV2 = () => {
+  const { getCollectionJoinField } = useCollectionManager_deprecated();
+
+  return (collectionName: string, label: string): ISchema => {
+    if (!collectionName) {
+      return;
+    }
+    const labelField = getCollectionJoinField(`${collectionName}.${label}`) as CollectionFieldOptions_deprecated;
+    return labelField?.uiSchema;
+  };
+};
 
 export const useLabelUiSchema = (collectionName: string, label: string): ISchema => {
-  const { getCollectionJoinField } = useCollectionManager();
+  const { getCollectionJoinField } = useCollectionManager_deprecated();
   if (!collectionName) {
     return;
   }
-  const labelField = getCollectionJoinField(`${collectionName}.${label}`) as CollectionFieldOptions;
+  const labelField = getCollectionJoinField(`${collectionName}.${label}`) as CollectionFieldOptions_deprecated;
   return labelField?.uiSchema;
 };
 
@@ -90,6 +103,7 @@ export function isShowFilePicker(labelUiSchema) {
 /**
  * 当前字段的模式是否是 `子表格` 或者 `子表单`
  */
-export function isSubMode(fieldSchema: Schema) {
-  return ['Nester', 'SubTable', 'PopoverNester'].includes(fieldSchema['x-component-props']?.mode);
+export function isSubMode(field: any) {
+  const mode = field['x-component-props']?.mode || (field as Field).componentProps?.mode;
+  return ['Nester', 'SubTable', 'PopoverNester'].includes(mode);
 }

@@ -1,19 +1,25 @@
 import { css } from '@emotion/css';
 import { FormLayout } from '@formily/antd-v5';
 import { observer, RecursionField, useFieldSchema } from '@formily/react';
+import {
+  ActionContextProvider,
+  DndContext,
+  RecordProvider,
+  SchemaComponentOptions,
+  useCollectionParentRecordData,
+} from '@nocobase/client';
 import { Card } from 'antd';
 import cls from 'classnames';
 import React, { useContext, useState } from 'react';
-import { ActionContextProvider, DndContext, RecordProvider, SchemaComponentOptions } from '@nocobase/client';
 import { KanbanCardContext } from './context';
 
 export const KanbanCard: any = observer(
   (props: any) => {
     const { setDisableCardDrag, cardViewerSchema, card, cardField, columnIndex, cardIndex } =
       useContext(KanbanCardContext);
+    const parentRecordData = useCollectionParentRecordData();
     const fieldSchema = useFieldSchema();
     const [visible, setVisible] = useState(false);
-    const labelDisabled = fieldSchema['x-label-disabled'];
     return (
       <SchemaComponentOptions components={{}} scope={{}}>
         <Card
@@ -65,7 +71,6 @@ export const KanbanCard: any = observer(
             .ant-formily-item-label {
               color: #8c8c8c;
               fontweight: normal;
-              display: ${labelDisabled ? 'none' : 'flex'};
             }
           `)}
         >
@@ -95,7 +100,7 @@ export const KanbanCard: any = observer(
               setVisible,
             }}
           >
-            <RecordProvider record={card}>
+            <RecordProvider record={card} parent={parentRecordData}>
               <RecursionField
                 basePath={cardField.address.concat(`${columnIndex}.cardViewer.${cardIndex}`)}
                 schema={cardViewerSchema}

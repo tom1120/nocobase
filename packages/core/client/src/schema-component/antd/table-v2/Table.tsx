@@ -11,12 +11,15 @@ import { isPortalInBody } from '@nocobase/utils/client';
 import { useMemoizedFn } from 'ahooks';
 import { Table as AntdTable, TableColumnProps } from 'antd';
 import { default as classNames, default as cls } from 'classnames';
+import _ from 'lodash';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DndContext, useDesignable, useTableSize } from '../..';
 import {
   RecordIndexProvider,
   RecordProvider,
+  useCollection_deprecated,
+  useCollectionParentRecordData,
   useSchemaInitializerRender,
   useTableBlockContext,
   useTableSelectorContext,
@@ -26,6 +29,7 @@ import { useToken } from '../__builtins__';
 import { SubFormProvider } from '../association-field/hooks';
 import { ColumnFieldProvider } from './components/ColumnFieldProvider';
 import { extractIndex, isCollectionFieldComponent, isColumnComponent } from './utils';
+import { isNewRecord } from '../../../data-source/collection-record/isNewRecord';
 
 const useArrayField = (props) => {
   const field = useField<ArrayField>();
@@ -33,11 +37,13 @@ const useArrayField = (props) => {
 };
 
 const useTableColumns = (props: { showDel?: boolean; isSubTable?: boolean }) => {
+  const { token } = useToken();
   const field = useArrayField(props);
   const schema = useFieldSchema();
   const { schemaInWhitelist } = useACLFieldWhitelist();
   const { designable } = useDesignable();
   const { exists, render } = useSchemaInitializerRender(schema['x-initializer'], schema['x-initializer-props']);
+  const parentRecordData = useCollectionParentRecordData();
   const columns = schema
     .reduceProperties((buf, s) => {
       if (isColumnComponent(s) && schemaInWhitelist(Object.values(s.properties || {}).pop())) {
@@ -64,9 +70,18 @@ const useTableColumns = (props: { showDel?: boolean; isSubTable?: boolean }) => 
           return (
             <SubFormProvider value={record}>
               <RecordIndexProvider index={record.__index || index}>
-                <RecordProvider record={record}>
+                <RecordProvider isNew={isNewRecord(record)} record={record} parent={parentRecordData}>
                   <ColumnFieldProvider schema={s} basePath={field.address.concat(record.__index || index)}>
-                    <span role="button">
+                    <span
+                      role="button"
+                      className={css`
+                        // 扩大 SchemaToolbar 的面积
+                        .nb-action-link {
+                          margin: -${token.paddingContentVerticalLG}px -${token.marginSM}px;
+                          padding: ${token.paddingContentVerticalLG}px ${token.marginSM}px;
+                        }
+                      `}
+                    >
                       <RecursionField
                         basePath={field.address.concat(record.__index || index)}
                         schema={s}
@@ -226,6 +241,7 @@ export const Table: any = observer(
     const field = useArrayField(others);
     const columns = useTableColumns(others);
     const schema = useFieldSchema();
+    const collection = useCollection_deprecated();
     const isTableSelector = schema?.parent?.['x-decorator'] === 'TableSelectorProvider';
     const ctx = isTableSelector ? useTableSelectorContext() : useTableBlockContext();
     const { expandFlag, allIncludesChildren } = ctx;
@@ -346,7 +362,7 @@ export const Table: any = observer(
     }, [field, onRowDragEnd, dragSort]);
 
     /**
-     * 为没有设置 key 属性的 record 生成一个唯一的 key
+     * 为没有设置 key 属性的表格行生成一个唯一的 key
      * 1. rowKey 的默认值是 “key”，所以先判断有没有 record.key；
      * 2. 如果没有就生成一个唯一的 key，并以 record 的值作为索引；
      * 3. 这样下次就能取到对应的 key 的值；
@@ -552,7 +568,9 @@ export const Table: any = observer(
             columns={columns}
             expandable={{
               onExpand: (flag, record) => {
-                const newKeys = flag ? [...expandedKeys, record.id] : expandedKeys.filter((i) => record.id !== i);
+                const newKeys = flag
+                  ? [...expandedKeys, record[collection.getPrimaryKey()]]
+                  : expandedKeys.filter((i) => record[collection.getPrimaryKey()] !== i);
                 setExpandesKeys(newKeys);
                 onExpand?.(flag, record);
               },

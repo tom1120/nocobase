@@ -6,6 +6,8 @@ import { uid } from '@formily/shared';
 import {
   ACLCollectionFieldProvider,
   BlockItem,
+  CollectionFieldProvider,
+  CollectionProvider,
   FormDialog,
   HTMLEncode,
   SchemaComponent,
@@ -13,7 +15,7 @@ import {
   SchemaInitializer,
   SchemaInitializerItem,
   gridRowColWrap,
-  useCollectionManager,
+  useCollectionManager_deprecated,
   useDesignable,
   useGlobalTheme,
   useSchemaInitializerItem,
@@ -27,11 +29,14 @@ import { lang, useChartsTranslation } from '../locale';
 import { getPropsSchemaByComponent } from './utils';
 const { Paragraph, Text } = Typography;
 
-const FieldComponentProps: React.FC = observer((props) => {
-  const form = useForm();
-  const schema = getPropsSchemaByComponent(form.values.component);
-  return schema ? <SchemaComponent schema={schema} {...props} /> : null;
-});
+const FieldComponentProps: React.FC = observer(
+  (props) => {
+    const form = useForm();
+    const schema = getPropsSchemaByComponent(form.values.component);
+    return schema ? <SchemaComponent schema={schema} {...props} /> : null;
+  },
+  { displayName: 'FieldComponentProps' },
+);
 
 const ErrorFallback = ({ error }) => {
   return (
@@ -75,15 +80,21 @@ export const ChartFilterFormItem = observer(
         },
       );
     }, [showTitle]);
+    const collectionField = schema?.['x-collection-field'] || '';
+    const [collection] = collectionField.split('.');
 
     return (
-      <ACLCollectionFieldProvider>
-        <BlockItem className={'nb-form-item'}>
-          <ErrorBoundary onError={(err) => console.log(err)} FallbackComponent={ErrorFallback}>
-            <FormItem className={className} {...props} extra={extra} />
-          </ErrorBoundary>
-        </BlockItem>
-      </ACLCollectionFieldProvider>
+      <CollectionProvider name={collection} allowNull={!collection}>
+        <CollectionFieldProvider name={schema.name} allowNull={!schema['x-collection-field']}>
+          <ACLCollectionFieldProvider>
+            <BlockItem className={'nb-form-item'}>
+              <ErrorBoundary onError={(err) => console.log(err)} FallbackComponent={ErrorFallback}>
+                <FormItem className={className} {...props} extra={extra} />
+              </ErrorBoundary>
+            </BlockItem>
+          </ACLCollectionFieldProvider>
+        </CollectionFieldProvider>
+      </CollectionProvider>
     );
   },
   { displayName: 'ChartFilterFormItem' },
@@ -99,7 +110,7 @@ export const ChartFilterCustomItemInitializer: React.FC<{
   const { theme } = useGlobalTheme();
   const { insert } = props;
   const itemConfig = useSchemaInitializerItem();
-  const { getCollectionJoinField, getInterface } = useCollectionManager();
+  const { getCollectionJoinField, getInterface } = useCollectionManager_deprecated();
   const sourceFields = useChartFilterSourceFields();
   const { options: fieldComponents, values: fieldComponentValues } = useFieldComponents();
   const handleClick = useCallback(async () => {
@@ -214,6 +225,7 @@ export const ChartFilterCustomItemInitializer: React.FC<{
   }, [theme]);
   return <SchemaInitializerItem {...itemConfig} {...props} onClick={handleClick} />;
 });
+ChartFilterCustomItemInitializer.displayName = 'ChartFilterCustomItemInitializer';
 
 export const chartFilterItemInitializers: SchemaInitializer = new SchemaInitializer({
   name: 'ChartFilterItemInitializers',
@@ -227,7 +239,7 @@ export const chartFilterItemInitializers: SchemaInitializer = new SchemaInitiali
       name: 'displayFields',
       title: '{{ t("Display fields") }}',
       useChildren: () => {
-        const { getCollection } = useCollectionManager();
+        const { getCollection } = useCollectionManager_deprecated();
         const { getChartCollections } = useChartData();
         const { getChartFilterFields } = useChartFilter();
         const collections = getChartCollections();

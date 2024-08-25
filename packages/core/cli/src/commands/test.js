@@ -51,7 +51,17 @@ function addTestCommand(name, cli) {
       if (opts.singleThread === 'false') {
         process.argv.splice(process.argv.indexOf('--single-thread=false'), 1);
       }
-      const cliArgs = ['--max_old_space_size=14096', './node_modules/.bin/vitest', ...process.argv.slice(3)];
+      const os = require('os');
+      var vitest_cli = '';
+      if (os.type() == 'Windows_NT') {
+        vitest_cli = './node_modules/.bin/vitest';
+      }
+
+      if (os.type() == 'Linux') {
+        vitest_cli = './node_modules/.bin/vitest';
+      }
+
+      const cliArgs = ['--max_old_space_size=14096', vitest_cli, ...process.argv.slice(3)];
       if (process.argv.includes('-h') || process.argv.includes('--help')) {
         await run('node', cliArgs);
         return;

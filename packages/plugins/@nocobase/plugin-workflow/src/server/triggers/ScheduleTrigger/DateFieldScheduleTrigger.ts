@@ -100,6 +100,7 @@ export default class ScheduleTrigger {
       }
 
       this.timer = setInterval(() => this.reload(), this.cacheCycle);
+      clearInterval(this.timer);
 
       this.reload();
     });

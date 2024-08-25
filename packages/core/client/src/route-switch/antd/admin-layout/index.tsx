@@ -27,6 +27,7 @@ import { Plugin } from '../../../application/Plugin';
 import { useAppSpin } from '../../../application/hooks/useAppSpin';
 import { Help } from '../../../user/Help';
 import { VariablesProvider } from '../../../variables';
+import TabsLayout from './tabs-layout';
 
 const filterByACL = (schema, options) => {
   const { allowAll, allowMenuItemIds = [] } = options;
@@ -73,10 +74,11 @@ const MenuEditor = (props) => {
   const isMatchAdmin = useMatch('/admin');
   const isMatchAdminName = useMatch('/admin/:name');
   const defaultSelectedUid = params.name;
-  const { sideMenuRef } = props;
+  const { sideMenuRef, current, setCurrent } = props;
   const ctx = useACLRoleContext();
-  const [current, setCurrent] = useState(null);
+  // const [current, setCurrent] = useState(null);
   const onSelect = ({ item }) => {
+    console.debug(item);
     const schema = item.props.schema;
     setTitle(schema.title);
     setCurrent(schema);
@@ -131,6 +133,7 @@ const MenuEditor = (props) => {
   useEffect(() => {
     if (match) {
       const schema = filterByACL(data?.data, ctx);
+      // setCurrent(schema);
       const s = findByUid(schema, defaultSelectedUid);
       if (s) {
         setTitle(s.title);
@@ -276,10 +279,13 @@ const SetThemeOfHeaderSubmenu = ({ children }) => {
 };
 
 export const InternalAdminLayout = (props: any) => {
+  const [current, setCurrent] = useState(null);
   const sideMenuRef = useRef<HTMLDivElement>();
   const result = useSystemSettings();
   // const { service } = useCollectionManager_deprecated();
   const params = useParams<any>();
+  console.debug(params);
+  console.debug(props);
   const { token } = useToken();
   return (
     <Layout>
@@ -363,7 +369,7 @@ export const InternalAdminLayout = (props: any) => {
               `}
             >
               <SetThemeOfHeaderSubmenu>
-                <MenuEditor sideMenuRef={sideMenuRef} />
+                <MenuEditor sideMenuRef={sideMenuRef} current={current} setCurrent={setCurrent} />
               </SetThemeOfHeaderSubmenu>
             </div>
           </div>
@@ -441,7 +447,9 @@ export const InternalAdminLayout = (props: any) => {
             pointer-events: none;
           `}
         ></header>
-        <Outlet />
+        {params.name && <TabsLayout current={current} />}
+        {!params.name && <Outlet />}
+        {/* <Outlet /> */}
         {/* {service.contentLoading ? render() : <Outlet />} */}
       </Layout.Content>
     </Layout>

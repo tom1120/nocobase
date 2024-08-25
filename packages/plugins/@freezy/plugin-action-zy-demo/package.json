@@ -1,0 +1,17 @@
+{
+  "name": "@freezy/plugin-action-zy-demo",
+  "version": "0.20.0-alpha.8",
+  "main": "dist/server/index.js",
+  "devDependencies": {
+    "@formily/core": "2.x",
+    "@formily/react": "2.x",
+    "@formily/shared": "2.x",
+    "antd": "5.x",
+    "@dnd-kit/core": "5.x"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "0.x",
+    "@nocobase/server": "0.x",
+    "@nocobase/test": "0.x"
+  }
+}

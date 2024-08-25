@@ -158,6 +158,8 @@ export async function send(this: CustomRequestPlugin, ctx: Context, next: Next) 
     })}`,
   );
 
+  this.logger.info(JSON.stringify(axiosRequestConfig));
+
   try {
     ctx.body = await axios(axiosRequestConfig).then((res) => {
       this.logger.info(`custom-request:send:${filterByTk} success`);

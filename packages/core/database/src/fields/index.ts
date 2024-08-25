@@ -25,6 +25,7 @@ import { TimeFieldOptions } from './time-field';
 import { UidFieldOptions } from './uid-field';
 import { UUIDFieldOptions } from './uuid-field';
 import { VirtualFieldOptions } from './virtual-field';
+import { SnowflakeFieldOptions } from './snowflake';
 
 export * from './array-field';
 export * from './belongs-to-field';
@@ -48,6 +49,7 @@ export * from './time-field';
 export * from './uid-field';
 export * from './uuid-field';
 export * from './virtual-field';
+export * from './snowflake';
 
 export type FieldOptions =
   | BaseFieldOptions
@@ -75,4 +77,5 @@ export type FieldOptions =
   | BelongsToFieldOptions
   | HasOneFieldOptions
   | HasManyFieldOptions
-  | BelongsToManyFieldOptions;
+  | BelongsToManyFieldOptions
+  | SnowflakeFieldOptions;

@@ -48,6 +48,13 @@ export default {
       name: 'description',
       allowNull: true,
     },
+    // {
+    //   type: 'integer',
+    //   name: 'sort',
+    //   defaultValue: false,
+    //   hidden: false
+    // }
+    // ,
     {
       type: 'hasMany',
       name: 'fields',

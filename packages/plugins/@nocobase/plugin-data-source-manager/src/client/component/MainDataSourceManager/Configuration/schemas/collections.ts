@@ -81,6 +81,16 @@ export const collection: CollectionOptions = {
         'x-component': 'Input',
       },
     },
+    {
+      type: 'integer',
+      name: 'sort',
+      interface: 'input',
+      uiSchema: {
+        title: '排序',
+        type: 'integer',
+        'x-component': 'Input',
+      },
+    },
   ],
 };
 
@@ -231,6 +241,18 @@ export const collectionTableSchema: ISchema = {
           properties: {
             category: {
               'x-component': CollectionCategory,
+              'x-read-pretty': true,
+            },
+          },
+        },
+        column7: {
+          type: 'void',
+          'x-decorator': 'Table.Column.Decorator',
+          'x-component': 'Table.Column',
+          properties: {
+            sort: {
+              type: 'integer',
+              'x-component': 'CollectionField',
               'x-read-pretty': true,
             },
           },

@@ -398,8 +398,8 @@ export class Repository<TModelAttributes extends {} = any, TCreationAttributes e
       }
     }
 
-    if (primaryKeyKey != '' && primaryKeyKey != 'id') {
-      opts.attributes.include.push([primaryKeyKey, 'id']);
+    if (primaryKeyKey && primaryKeyKey != '' && primaryKeyKey != 'id') {
+      opts.attributes.include?.push([primaryKeyKey, 'id']);
     }
 
     if (opts.include && opts.include.length > 0) {
@@ -427,6 +427,8 @@ export class Repository<TModelAttributes extends {} = any, TCreationAttributes e
       dataCollection: this.collection,
       data: rows,
     });
+
+    // console.info(rows);
 
     return rows;
   }
@@ -543,6 +545,8 @@ export class Repository<TModelAttributes extends {} = any, TCreationAttributes e
       this.database.logger.warn(options.values.name + '已经存在');
       tt = ff;
     } else {
+      console.debug(values);
+      console.debug(options);
       tt = await this.model.create<any>(values, {
         ...options,
         transaction,

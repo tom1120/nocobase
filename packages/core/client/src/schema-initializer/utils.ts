@@ -832,6 +832,7 @@ export const useCollectionDataSourceItems = (
   const dm = useDataSourceManager();
   const dataSourceKey = useDataSourceKey();
   let allCollections = dm.getAllCollections(filter);
+  // console.debug(allCollections);
   if (onlyCurrentDataSource) {
     allCollections = allCollections.filter((collection) => collection.key === dataSourceKey);
   }
@@ -1504,6 +1505,13 @@ const getChildren = ({
       if (item.inherit) {
         return false;
       }
+
+      // const fields = item.options.fields;
+      // if (item.autoGenId === false && !fields.find((v) => v.primaryKey)) {
+      //   return false;
+      // }
+
+      // 新建视图这个值未定义
       if (!item.filterTargetKey) {
         return false;
       } else if (
